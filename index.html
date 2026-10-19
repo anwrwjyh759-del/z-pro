@@ -9,29 +9,66 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <style>
+        :root {
+            --primary: #1877f2;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --text: #1c1e21;
+        }
+        body.dark-mode {
+            --primary: #2d88ff;
+            --bg: #18191a;
+            --card-bg: #242526;
+            --text: #e4e6eb;
+        }
         body {
             font-family: 'Cairo', Tahoma, sans-serif;
-            background-color: #f0f2f5;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
             padding: 0;
             direction: rtl;
+            transition: background 0.3s, color 0.3s;
         }
         header {
-            background-color: #1877f2;
+            background-color: var(--primary);
             color: white;
-            padding: 15px;
+            padding: 12px 20px;
             text-align: center;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 20px auto;
-            background: #ffffff;
+            background: var(--card-bg);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: #e4e6eb;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #333;
+            font-size: 14px;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
         }
         .form-group {
             margin-bottom: 15px;
@@ -40,52 +77,37 @@
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            color: #333;
         }
         input, select, textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccd0d5;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
             box-sizing: border-box;
+            background: var(--card-bg);
+            color: var(--text);
         }
         button {
-            background-color: #1877f2;
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 12px;
             width: 100%;
             border-radius: 6px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #165fe5;
-        }
-        .hidden {
-            display: none !important;
-        }
-        /* تصميم المنشورات */
+        .hidden { display: none !important; }
+        
         .post-card {
-            background: #fff;
+            background: var(--card-bg);
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .post-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .author-name {
-            font-weight: bold;
-            font-size: 16px;
-            color: #050505;
+            position: relative;
         }
         .badge {
             background-color: #e41e3f;
@@ -95,20 +117,25 @@
             border-radius: 4px;
             margin-right: 8px;
         }
-        .badge-student {
-            background-color: #31a24c;
+        .badge-student { background-color: #31a24c; }
+        .badge-assistant { background-color: #f7b928; color: #000; }
+        .badge-live { background-color: #e41e3f; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
-        .post-body {
-            font-size: 15px;
-            color: #1c1e21;
-            margin-bottom: 10px;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-        .post-body img, .post-body video {
-            max-width: 100%;
-            border-radius: 6px;
-            margin-top: 10px;
+
+        .delete-btn {
+            background-color: #e41e3f;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
         }
         .comments-section {
             border-top: 1px solid #eee;
@@ -116,37 +143,66 @@
             margin-top: 10px;
         }
         .comment-item {
-            background: #f0f2f5;
+            background: rgba(0,0,0,0.05);
             padding: 8px 12px;
             border-radius: 6px;
             margin-bottom: 6px;
             font-size: 14px;
         }
-        .comment-input-box {
+        .quiz-option {
+            margin: 8px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.03);
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .quiz-option:hover {
+            background: rgba(24, 119, 242, 0.1);
+        }
+        .leaderboard-item {
             display: flex;
-            gap: 5px;
-            margin-top: 8px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
         }
-        .comment-input-box input {
-            padding: 8px;
-            font-size: 14px;
+        .global-dev-bar {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(0,0,0,0.03);
+            border: 1px dashed #1877f2;
+            border-radius: 8px;
+            text-align: center;
         }
-        .comment-input-box button {
-            width: 80px;
-            padding: 8px;
-            font-size: 14px;
+        .post-body a {
+            color: #1877f2;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .live-btn {
+            background-color: #e41e3f;
+            margin-top: 10px;
+        }
+        .live-btn:hover {
+            background-color: #b91331;
         }
     </style>
 </head>
 <body>
 
-    <header>منصة Rash التعليمية</header>
+    <header>
+        <span> Rash </span>
+        <button onclick="toggleDarkMode()" style="width: auto; padding: 6px 12px; font-size: 12px; background: rgba(255,255,255,0.2);">🌙 الوضع</button>
+    </header>
 
-    <!-- واجهة تسجيل الدخول -->
+    <!-- تسجيل الدخول -->
     <div class="container" id="loginContainer">
         <h2>تسجيل الدخول للمنصة</h2>
         <div class="form-group">
-            <label>اسمك الكريم:</label>
+            <label>اسمك :</label>
             <input type="text" id="inputName" placeholder="اكتب اسمك..." />
         </div>
         <div class="form-group">
@@ -154,12 +210,12 @@
             <select id="inputRole" onchange="checkRoleSelection()">
                 <option value="student">طالب 👨‍🎓</option>
                 <option value="teacher">مدرس 👨‍🏫</option>
+                <option value="assistant">مساعد مدرس 👨‍💼</option>
             </select>
         </div>
-        <!-- كود المدرس السري (250746) -->
         <div class="form-group hidden" id="teacherCodeGroup">
-            
-            <input type="password" id="inputTeacherCode" placeholder="أدخل كود المدرس..." />
+            <label>كود التحقق الخاص بالمدرس/المساعد:</label>
+            <input type="password" id="inputTeacherCode" placeholder="أدخل كود المدرس أو المساعد..." />
         </div>
         <button onclick="loginToPlatform()">دخول المنصة</button>
     </div>
@@ -167,32 +223,81 @@
     <!-- واجهة المنصة الرئيسية -->
     <div class="container hidden" id="platformContainer">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 id="welcomeMsg" style="margin: 0; color: #1877f2;"></h3>
-            <button onclick="location.reload()" style="width: auto; background-color: #e41e3f; padding: 6px 12px; font-size: 14px;">خروج</button>
+            <h3 id="welcomeMsg" style="margin: 0; color: var(--primary);"></h3>
+            <button id="logoutBtn" onclick="logout()" style="width: auto; background-color: #e41e3f; padding: 6px 12px; font-size: 14px;">خروج</button>
         </div>
 
-        <!-- صندوق النشر (للمدرس فقط) -->
-        <div class="container hidden" id="teacherPostBox" style="background: #f7f8f9; border: 1px dashed #ccd0d5; margin: 0 0 20px 0;">
-            <h4 style="margin-top:0;">إضافة درس جديد (نصوص، صور، أو فيديو مباشر):</h4>
-            <div class="form-group">
-                <textarea id="postContent" rows="3" placeholder="اكتب محتوى الشرح أو الدرس هنا..."></textarea>
-            </div>
-            <div class="form-group">
-                <label style="font-size: 13px; color: #606770;">اختر فيديو أو صورة من جهازك:</label>
-                <input type="file" id="mediaFile" accept="image/*,video/*" />
-            </div>
-            <button onclick="publishPost()">نشر الدرس للجميع</button>
+        <!-- التبويبات -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('feed')">📖 الدروس</button>
+            <button class="tab-btn" onclick="switchTab('quizzes')">📝 الامتحانات</button>
+            <button class="tab-btn" onclick="switchTab('leaderboard')">🏆 الأوائل</button>
         </div>
 
-        <!-- حائط المنشورات والدروس -->
-        <h3>حائط المنصة والدروس التفاعلية:</h3>
-        <div id="postsFeed">
-            <p style="text-align: center; color: #65676b;">جاري تحميل المنشورات والدروس...</p>
+        <!-- 1. قسم الدروس -->
+        <div id="tab-feed">
+            <div class="container hidden" id="teacherPostBox" style="background: rgba(0,0,0,0.02); border: 1px dashed #ccd0d5; margin: 0 0 20px 0;">
+                <h4 style="margin-top:0;">إضافة درس أو رابط جديد:</h4>
+                <div class="form-group">
+                    <textarea id="postContent" rows="3" placeholder="اكتب محتوى الدرس أو انشر رابطاً هنا..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 13px; color: #606770;">اختر فيديو أو صورة:</label>
+                    <input type="file" id="mediaFile" accept="image/*,video/*" />
+                </div>
+                <button onclick="publishPost()">نشر الدرس للجميع</button>
+
+                <!-- زرار إضافة بث مباشر -->
+                <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px;">
+                    <label style="font-size: 13px; color: #e41e3f;">🔴 نشر بث مباشر (Live):</label>
+                    <input type="text" id="liveUrlInput" placeholder="ضع رابط البث المباشر (يوتيوب أو فيسبوك)..." style="margin-bottom: 5px; padding: 8px;" />
+                    <button class="live-btn" onclick="publishLiveStream()">بدء ونشر البث المباشر 📡</button>
+                </div>
+            </div>
+
+            <h3>حائط المنصة والدروس:</h3>
+            <div id="postsFeed"><p style="text-align: center;">جاري التحميل...</p></div>
         </div>
+
+        <!-- 2. قسم الامتحانات -->
+        <div id="tab-quizzes" class="hidden">
+            <div class="container hidden" id="addQuizBox" style="background: rgba(0,0,0,0.02); border: 1px dashed #ccd0d5; margin: 0 0 20px 0;">
+                <h4>إضافة سؤال كويز (4 اختيارات):</h4>
+                <input type="text" id="quizQuestion" placeholder="نص السؤال..." style="margin-bottom:8px;">
+                <input type="text" id="optA" placeholder="الخيار (أ)..." style="margin-bottom:8px;">
+                <input type="text" id="optB" placeholder="الخيار (ب)..." style="margin-bottom:8px;">
+                <input type="text" id="optC" placeholder="الخيار (ج)..." style="margin-bottom:8px;">
+                <input type="text" id="optD" placeholder="الخيار (د)..." style="margin-bottom:8px;">
+                <select id="correctOpt" style="margin-bottom:8px;">
+                    <option value="A">الخيار (أ) هو الصحيح</option>
+                    <option value="B">الخيار (ب) هو الصحيح</option>
+                    <option value="C">الخيار (ج) هو الصحيح</option>
+                    <option value="D">الخيار (د) هو الصحيح</option>
+                </select>
+                <button onclick="addQuizQuestion()">نشر السؤال</button>
+            </div>
+            <h3>الامتحانات المتاحة:</h3>
+            <div id="quizList"></div>
+        </div>
+
+        <!-- 3. قائمة الأوائل -->
+        <div id="tab-leaderboard" class="hidden">
+            <h3>🏆 قائمة المتفوقين:</h3>
+            <div id="leaderboardList"></div>
+        </div>
+
+        <!-- 🔑 شريط الدخول السريع للمدرس الدائم -->
+        <div class="global-dev-bar">
+            <label style="font-size: 13px; color: #1877f2; margin-bottom: 5px;">🔑 لوحة تحكم المطور / المدرس السري:</label>
+            <div style="display: flex; gap: 5px;">
+                <input type="password" id="devPassInput" style="padding: 8px;" />
+                <button onclick="loginAsDevAdmin()" style="width: 130px; font-size: 14px; background-color: #2b2b2b;">دخول سريع</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // إعدادات اتصال Firebase الحقيقية
         const firebaseConfig = {
           apiKey: "AIzaSyC2qgNuYR-0pVOxjus8mFbGGL42yuyR9lw",
           authDomain: "z-pro-1016d.firebaseapp.com",
@@ -209,10 +314,23 @@
 
         let currentUser = { name: "", role: "" };
 
+        window.onload = function() {
+            const savedUser = localStorage.getItem('rash_user');
+            if (savedUser) {
+                const parsed = JSON.parse(savedUser);
+                if (parsed.role === 'student') {
+                    currentUser = parsed;
+                    startPlatform();
+                }
+            }
+        };
+
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+        
         function checkRoleSelection() {
             const role = document.getElementById('inputRole').value;
             const codeGroup = document.getElementById('teacherCodeGroup');
-            if (role === 'teacher') {
+            if (role === 'teacher' || role === 'assistant') {
                 codeGroup.classList.remove('hidden');
             } else {
                 codeGroup.classList.add('hidden');
@@ -224,120 +342,170 @@
             const role = document.getElementById('inputRole').value;
             const code = document.getElementById('inputTeacherCode').value.trim();
 
-            if (name === "") {
-                alert("من فضلك أدخل اسمك!");
-                return;
+            if (name === "") { alert("أدخل اسمك!"); return; }
+            if ((role === 'teacher' || role === 'assistant') && code !== "250746") {
+                alert("كود التحقق غير صحيح!"); return;
             }
 
-            if (role === 'teacher') {
-                if (code !== "250746") {
-                    alert("كود المدرس غير صحيح! لا يمكن للطالب الدخول بصلاحيات المدرس.");
-                    return;
-                }
+            currentUser = { name, role };
+            localStorage.setItem('rash_user', JSON.stringify(currentUser));
+            startPlatform();
+        }
+
+        function loginAsDevAdmin() {
+            const pass = document.getElementById('devPassInput').value.trim();
+            if (pass === "250746") {
+                currentUser = { name: "المدرس / Anwar", role: "teacher" };
+                localStorage.setItem('rash_user', JSON.stringify(currentUser));
+                startPlatform();
+                alert("تم تفعيل صلاحيات المدرس بنجاح! 👨‍🏫");
+            } else {
+                alert("كلمة السر غير صحيحة!");
             }
+        }
 
-            currentUser.name = name;
-            currentUser.role = role;
-
+        function startPlatform() {
             document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('platformContainer').classList.remove('hidden');
-            document.getElementById('welcomeMsg').textContent = `أهلاً بك، ${name} (${role === 'teacher' ? 'مدرس' : 'طالب'})`;
+            
+            let roleText = currentUser.role === 'teacher' ? 'مدرس 👨‍🏫' : (currentUser.role === 'assistant' ? 'مساعد 👨‍💼' : 'طالب 👨‍🎓');
+            document.getElementById('welcomeMsg').textContent = `أهلاً، ${currentUser.name} (${roleText})`;
 
-            if (role === 'teacher') {
+            if (currentUser.role === 'student') {
+                document.getElementById('logoutBtn').classList.add('hidden');
+            } else {
+                document.getElementById('logoutBtn').classList.remove('hidden');
+            }
+
+            if (currentUser.role === 'teacher' || currentUser.role === 'assistant') {
                 document.getElementById('teacherPostBox').classList.remove('hidden');
+                document.getElementById('addQuizBox').classList.remove('hidden');
+            } else {
+                document.getElementById('teacherPostBox').classList.add('hidden');
+                document.getElementById('addQuizBox').classList.add('hidden');
             }
 
             loadPosts();
+            loadQuizzes();
+            loadLeaderboard();
         }
 
-        // نشر المنشور مع تحويل الملف (فيديو أو صورة) إلى صيغة Base64 ليتم حفظه وعرضه للجميع فوراً
+        function logout() {
+            localStorage.removeItem('rash_user');
+            location.reload();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-feed').classList.add('hidden');
+            document.getElementById('tab-quizzes').classList.add('hidden');
+            document.getElementById('tab-leaderboard').classList.add('hidden');
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+
+        // تحويل أي رابط نصي إلى رابط زرقاء تفتح بضغطة واحدة
+        function autoLink(text) {
+            if (!text) return "";
+            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            return text.replace(urlPattern, '<a href="$1" target="_blank">$1</a>');
+        }
+
+        // --- الدروس والمنشورات ---
         function publishPost() {
             const content = document.getElementById('postContent').value.trim();
             const fileInput = document.getElementById('mediaFile');
-            
-            if (content === "" && fileInput.files.length === 0) {
-                alert("يرجى كتابة نص أو اختيار ملف فيديو/صورة للنشر!");
-                return;
-            }
+            if (content === "" && fileInput.files.length === 0) { alert("أدخل محتوى أو اختر ملف!"); return; }
 
             if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
                 const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    savePostToFirebase(content, e.target.result, file.type);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                savePostToFirebase(content, "", "");
-            }
+                reader.onload = e => savePost(content, e.target.result, fileInput.files[0].type, false);
+                reader.readAsDataURL(fileInput.files[0]);
+            } else { savePost(content, "", "", false); }
         }
 
-        function savePostToFirebase(content, mediaData, fileType) {
-            const postRef = db.ref('rash_posts').push();
-            postRef.set({
+        function publishLiveStream() {
+            const liveUrl = document.getElementById('liveUrlInput').value.trim();
+            if(!liveUrl) { alert("يرجى إدخال رابط البث المباشر أولاً!"); return; }
+            savePost("🔴 بث مباشر شغال الان! اضغط على الرابط للانضمام للبث:", liveUrl, "live", true);
+            document.getElementById('liveUrlInput').value = "";
+        }
+
+        function savePost(content, media, type, isLive) {
+            db.ref('rash_posts').push({
                 author: currentUser.name,
                 role: currentUser.role,
                 content: content,
-                media: mediaData,
-                fileType: fileType,
+                media: media,
+                fileType: type,
+                isLive: isLive || false,
                 timestamp: Date.now()
             }).then(() => {
                 document.getElementById('postContent').value = "";
                 document.getElementById('mediaFile').value = "";
-                alert("تم نشر الدرس بنجاح للجميع!");
-            }).catch(error => {
-                alert("حدث خطأ أثناء النشر: " + error.message);
+                alert(isLive ? "تم إطلاق البث المباشر للطلاب بنجاح! 📡" : "تم النشر بنجاح!");
             });
         }
 
-        // عرض المنشورات والفيديوهات لكل الهواتف لحظياً
+        function deletePost(postId) {
+            if(confirm("هل أنت متأكد من حذف هذا الدرس/البث؟")) {
+                db.ref(`rash_posts/${postId}`).remove().then(() => {
+                    db.ref(`rash_comments/${postId}`).remove();
+                    alert("تم الحذف بنجاح!");
+                });
+            }
+        }
+
         function loadPosts() {
             db.ref('rash_posts').on('value', (snapshot) => {
                 const feed = document.getElementById('postsFeed');
                 feed.innerHTML = "";
                 const data = snapshot.val();
+                if (!data) { feed.innerHTML = '<p style="text-align: center;">لا توجد منشورات.</p>'; return; }
 
-                if (!data) {
-                    feed.innerHTML = '<p style="text-align: center; color: #65676b;">لا توجد منشورات أو دروس حتى الآن.</p>';
-                    return;
-                }
-
-                const postsArray = Object.entries(data).reverse();
-
-                postsArray.forEach(([postId, post]) => {
-                    const postCard = document.createElement('div');
-                    postCard.className = 'post-card';
-
+                Object.entries(data).reverse().forEach(([postId, post]) => {
+                    const card = document.createElement('div');
+                    card.className = 'post-card';
+                    
                     let mediaHtml = "";
-                    if (post.media) {
+                    if (post.isLive) {
+                        mediaHtml = `
+                            <div style="margin-top:10px; padding:15px; background:rgba(228, 30, 63, 0.1); border-radius:8px; border:1px solid #e41e3f; text-align:center;">
+                                <h4 style="color:#e41e3f; margin-top:0;">🔴 بث مباشر قائم الان</h4>
+                                <a href="${post.media}" target="_blank" style="display:inline-block; padding:10px 20px; background:#e41e3f; color:white; border-radius:6px; font-weight:bold; text-decoration:none;">الانضمام للبث المباشر 📡</a>
+                            </div>`;
+                    } else if (post.media) {
                         if (post.fileType && post.fileType.startsWith('video')) {
-                            mediaHtml = `<video controls width="100%"><source src="${post.media}" type="${post.fileType}">متصفحك لا يدعم عرض الفيديو</video>`;
+                            mediaHtml = `<video controls width="100%"><source src="${post.media}" type="${post.fileType}"></video>`;
                         } else if (post.fileType && post.fileType.startsWith('image')) {
-                            mediaHtml = `<img src="${post.media}" alt="صورة الدرس">`;
+                            mediaHtml = `<img src="${post.media}" style="max-width:100%; border-radius:6px;">`;
                         }
                     }
 
-                    postCard.innerHTML = `
-                        <div class="post-header">
-                            <span class="author-name">${post.author}</span>
-                            <span class="badge ${post.role === 'teacher' ? '' : 'badge-student'}">${post.role === 'teacher' ? 'مدرس 👨‍🏫' : 'طالب 👨‍🎓'}</span>
-                        </div>
-                        <div class="post-body">
-                            <p>${post.content ? post.content.replace(/\n/g, '<br>') : ''}</p>
-                            ${mediaHtml}
-                        </div>
+                    let deleteBtnHtml = "";
+                    if (currentUser.role === 'teacher' || currentUser.role === 'assistant') {
+                        deleteBtnHtml = `<button class="delete-btn" style="float:left;" onclick="deletePost('${postId}')">🗑️ حذف</button>`;
+                    }
+
+                    let badgeClass = post.isLive ? 'badge-live' : (post.role === 'teacher' ? '' : (post.role === 'assistant' ? 'badge-assistant' : 'badge-student'));
+                    let roleText = post.isLive ? 'بث مباشر 📡' : (post.role === 'teacher' ? 'مدرس 👨‍🏫' : (post.role === 'assistant' ? 'مساعد 👨‍💼' : 'طالب 👨‍🎓'));
+
+                    card.innerHTML = `
+                        ${deleteBtnHtml}
+                        <div><strong>${post.author}</strong> <span class="badge ${badgeClass}">${roleText}</span></div>
+                        <div class="post-body" style="margin-top:10px;">${autoLink(post.content ? post.content.replace(/\n/g, '<br>') : '')}</div>
+                        ${mediaHtml}
                         <div class="comments-section">
-                            <h4>التعليقات والمناقشات:</h4>
+                            <h4>التعليقات:</h4>
                             <div id="comments-${postId}"></div>
-                            <div class="comment-input-box">
-                                <input type="text" id="comment-text-${postId}" placeholder="اكتب تعليقاً أو سؤالاً للمدرس..." />
-                                <button onclick="sendComment('${postId}')">إرسال</button>
+                            <div class="comment-input-box" style="display:flex; gap:5px; margin-top:8px;">
+                                <input type="text" id="comment-text-${postId}" placeholder="اكتب تعليقك..." style="flex:1;" />
+                                <button onclick="sendComment('${postId}')" style="width:80px;">إرسال</button>
                             </div>
                         </div>
                     `;
-
-                    feed.appendChild(postCard);
+                    feed.appendChild(card);
                     loadComments(postId);
                 });
             });
@@ -345,19 +513,10 @@
 
         function sendComment(postId) {
             const input = document.getElementById(`comment-text-${postId}`);
-            const text = input.value.trim();
-
-            if (text === "") return;
-
-            const commentRef = db.ref(`rash_comments/${postId}`).push();
-            commentRef.set({
-                author: currentUser.name,
-                role: currentUser.role,
-                text: text,
-                timestamp: Date.now()
-            }).then(() => {
-                input.value = "";
-            });
+            if (input.value.trim() === "") return;
+            db.ref(`rash_comments/${postId}`).push({
+                author: currentUser.name, text: input.value.trim()
+            }).then(() => { input.value = ""; });
         }
 
         function loadComments(postId) {
@@ -365,15 +524,129 @@
                 const container = document.getElementById(`comments-${postId}`);
                 container.innerHTML = "";
                 const data = snapshot.val();
-
                 if (data) {
                     Object.values(data).forEach(comm => {
                         const div = document.createElement('div');
                         div.className = 'comment-item';
-                        div.innerHTML = `<strong>${comm.author} <span style="font-size:10px; color:${comm.role==='teacher'?'red':'green'}">(${comm.role==='teacher'?'مدرس':'طالب'})</span>:</strong> ${comm.text}`;
+                        div.innerHTML = `<strong>${comm.author}:</strong> ${autoLink(comm.text)}`;
                         container.appendChild(div);
                     });
                 }
+            });
+        }
+
+        // --- الكويزات وحذفها ---
+        function addQuizQuestion() {
+            const q = document.getElementById('quizQuestion').value.trim();
+            const a = document.getElementById('optA').value.trim();
+            const b = document.getElementById('optB').value.trim();
+            const c = document.getElementById('optC').value.trim();
+            const d = document.getElementById('optD').value.trim();
+            const correct = document.getElementById('correctOpt').value;
+
+            if(!q || !a || !b || !c || !d) { alert("أكمل أرقام الخيارات واكتب نص السؤال كاملًا!"); return; }
+
+            db.ref('rash_quizzes').push({ question: q, optA: a, optB: b, optC: c, optD: d, correct }).then(() => {
+                alert("تم نشر الكويز بنجاح!");
+                document.getElementById('quizQuestion').value = "";
+                document.getElementById('optA').value = "";
+                document.getElementById('optB').value = "";
+                document.getElementById('optC').value = "";
+                document.getElementById('optD').value = "";
+            });
+        }
+
+        function deleteQuiz(quizId) {
+            if(confirm("هل أنت متأكد من حذف هذا الامتحان؟")) {
+                db.ref(`rash_quizzes/${quizId}`).remove().then(() => {
+                    alert("تم حذف الامتحان بنجاح!");
+                });
+            }
+        }
+
+        function loadQuizzes() {
+            db.ref('rash_quizzes').on('value', (snapshot) => {
+                const container = document.getElementById('quizList');
+                container.innerHTML = "";
+                const data = snapshot.val();
+                if(!data) { container.innerHTML = "<p>لا توجد امتحانات متاحة.</p>"; return; }
+
+                Object.entries(data).reverse().forEach(([qId, q]) => {
+                    const card = document.createElement('div');
+                    card.className = 'post-card';
+
+                    let deleteQuizBtn = "";
+                    if(currentUser.role === 'teacher' || currentUser.role === 'assistant') {
+                        deleteQuizBtn = `<button class="delete-btn" style="float:left;" onclick="deleteQuiz('${qId}')">🗑️ حذف الامتحان</button>`;
+                    }
+
+                    card.innerHTML = `
+                        ${deleteQuizBtn}
+                        <h4>سؤال: ${q.question}</h4>
+                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'A', '${q.correct}')">أ) ${q.optA}</div>
+                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'B', '${q.correct}')">ب) ${q.optB}</div>
+                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'C', '${q.correct}')">ج) ${q.optC}</div>
+                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'D', '${q.correct}')">د) ${q.optD}</div>
+                    `;
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        function answerQuiz(qId, selected, correct) {
+            if(currentUser.role !== 'student') { alert("الامتحانات للطلاب فقط!"); return; }
+
+            const safeName = currentUser.name.replace(/[.#$\[\]]/g, "_");
+            const answerRef = db.ref(`rash_answers/${qId}_${safeName}`);
+
+            answerRef.get().then((snapshot) => {
+                if (snapshot.exists()) {
+                    alert("⚠️ لقد قمت بإجابة هذا السؤال من قبل! لا يمكنك إعادة الإجابة.");
+                    return;
+                }
+
+                answerRef.set({ student: currentUser.name, selected, timestamp: Date.now() }).then(() => {
+                    if(selected === correct) {
+                        alert("إجابة صحيحة! أحسنت 👏 (+10 نقاط)");
+                        db.ref(`rash_users/${currentUser.name}`).transaction(p => (p || 0) + 10);
+                    } else {
+                        alert("إجابة خاطئة ❌ لقد تم تسجيل إجابتك ولا يمكنك إعادتها.");
+                    }
+                });
+            });
+        }
+
+        // --- الأوائل وحذف طالب ---
+        function deleteStudentFromLeaderboard(studentName) {
+            if(confirm(`هل أنت متأكد من مسح الطالب "${studentName}" من قائمة المتفوقين؟`)) {
+                db.ref(`rash_users/${studentName}`).remove().then(() => {
+                    alert("تم إزالة الطالب بنجاح!");
+                });
+            }
+        }
+
+        function loadLeaderboard() {
+            db.ref('rash_users').orderByValue().on('value', (snapshot) => {
+                const container = document.getElementById('leaderboardList');
+                container.innerHTML = "";
+                const data = snapshot.val();
+                if(!data) { container.innerHTML = "<p>لا يوجد متفوقين بعد.</p>"; return; }
+
+                Object.entries(data).sort((a,b) => b[1]-a[1]).forEach(([name, pts], i) => {
+                    let removeBtn = "";
+                    if(currentUser.role === 'teacher' || currentUser.role === 'assistant') {
+                        removeBtn = `<button class="delete-btn" onclick="deleteStudentFromLeaderboard('${name}')">❌ مسح</button>`;
+                    }
+
+                    container.innerHTML += `
+                        <div class="leaderboard-item">
+                            <span>#${i+1} ${name}</span>
+                            <div>
+                                <span style="margin-left: 10px;">💎 ${pts} نقطة</span>
+                                ${removeBtn}
+                            </div>
+                        </div>`;
+                });
             });
         }
     </script>
