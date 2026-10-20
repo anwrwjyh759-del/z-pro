@@ -110,7 +110,7 @@
             position: relative;
         }
         .badge {
-            background-color: #e41e3f;
+            background-color: #1877f2;
             color: white;
             font-size: 11px;
             padding: 2px 6px;
@@ -189,6 +189,36 @@
         .live-btn:hover {
             background-color: #b91331;
         }
+        /* تصميم صندوق البث المباشر المدمج */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            margin-top: 10px;
+            background: #000;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .notif-btn {
+            background-color: #2b2b2b;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -222,10 +252,13 @@
 
     <!-- واجهة المنصة الرئيسية -->
     <div class="container hidden" id="platformContainer">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 id="welcomeMsg" style="margin: 0; color: var(--primary);"></h3>
             <button id="logoutBtn" onclick="logout()" style="width: auto; background-color: #e41e3f; padding: 6px 12px; font-size: 14px;">خروج</button>
         </div>
+
+        <!-- زر تفعيل الإشعارات الفورية -->
+        <button class="notif-btn" id="enableNotifBtn" onclick="requestNotificationPermission()">🔔 تفعيل الإشعارات الفورية للدروس والبث</button>
 
         <!-- التبويبات -->
         <div class="nav-tabs">
@@ -250,7 +283,7 @@
                 <!-- زرار إضافة بث مباشر -->
                 <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px;">
                     <label style="font-size: 13px; color: #e41e3f;">🔴 نشر بث مباشر (Live):</label>
-                    <input type="text" id="liveUrlInput" placeholder="ضع رابط البث المباشر (يوتيوب أو فيسبوك)..." style="margin-bottom: 5px; padding: 8px;" />
+                    <input type="text" id="liveUrlInput" placeholder="ضع رابط بث يوتيوب المباشر هنا..." style="margin-bottom: 5px; padding: 8px;" />
                     <button class="live-btn" onclick="publishLiveStream()">بدء ونشر البث المباشر 📡</button>
                 </div>
             </div>
@@ -313,16 +346,16 @@
         const db = firebase.database();
 
         let currentUser = { name: "", role: "" };
+        let lastPostTimestamp = 0;
 
         window.onload = function() {
             const savedUser = localStorage.getItem('rash_user');
             if (savedUser) {
                 const parsed = JSON.parse(savedUser);
-                if (parsed.role === 'student') {
-                    currentUser = parsed;
-                    startPlatform();
-                }
+                currentUser = parsed;
+                startPlatform();
             }
+            checkNotificationPermissionStatus();
         };
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
@@ -388,6 +421,7 @@
             loadPosts();
             loadQuizzes();
             loadLeaderboard();
+            listenForNotifications();
         }
 
         function logout() {
@@ -405,11 +439,63 @@
             event.target.classList.add('active');
         }
 
-        // تحويل أي رابط نصي إلى رابط زرقاء تفتح بضغطة واحدة
+        // تحويل أي رابط نصي إلى رابط أزرق يفتح بضغطة واحدة
         function autoLink(text) {
             if (!text) return "";
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
             return text.replace(urlPattern, '<a href="$1" target="_blank">$1</a>');
+        }
+
+        // تحويل رابط يوتيوب العادي إلى معرف البث (YouTube Video ID)
+        function extractYouTubeId(url) {
+            if(!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // --- نظام الإشعارات الفورية ---
+        function checkNotificationPermissionStatus() {
+            if ("Notification" in window && Notification.permission === "granted") {
+                document.getElementById('enableNotifBtn').textContent = "🔔 الإشعارات الفورية مفعّلة ✅";
+                document.getElementById('enableNotifBtn').style.background = "#31a24c";
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("متصفحك أو تطبيقك لا يدعم الإشعارات الفورية.");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById('enableNotifBtn').textContent = "🔔 الإشعارات الفورية مفعّلة ✅";
+                    document.getElementById('enableNotifBtn').style.background = "#31a24c";
+                    new Notification("منصة Rash التعليمية", {
+                        body: "تم تفعيل الإشعارات بنجاح! سيصلك تنبيه فور نشر أي درس أو بث مباشر.",
+                        icon: "https://cdn-icons-png.flaticon.com/512/2991/2991195.png"
+                    });
+                }
+            });
+        }
+
+        function listenForNotifications() {
+            db.ref('rash_posts').limitToLast(1).on('child_added', (snapshot) => {
+                const post = snapshot.val();
+                if (post && post.timestamp > lastPostTimestamp && lastPostTimestamp !== 0) {
+                    if (Notification.permission === "granted" && post.author !== currentUser.name) {
+                        const title = post.isLive ? "🔴 بث مباشر جديد من المدرس!" : "📖 درس جديد في منصة Rash";
+                        const options = {
+                            body: post.content || "اضغط لمشاهدة المحتوى الجديد الآن.",
+                            icon: "https://cdn-icons-png.flaticon.com/512/2991/2991195.png"
+                        };
+                        new Notification(title, options);
+                    }
+                }
+                if (post) {
+                    lastPostTimestamp = post.timestamp;
+                }
+            });
         }
 
         // --- الدروس والمنشورات ---
@@ -428,7 +514,11 @@
         function publishLiveStream() {
             const liveUrl = document.getElementById('liveUrlInput').value.trim();
             if(!liveUrl) { alert("يرجى إدخال رابط البث المباشر أولاً!"); return; }
-            savePost("🔴 بث مباشر شغال الان! اضغط على الرابط للانضمام للبث:", liveUrl, "live", true);
+            
+            const ytId = extractYouTubeId(liveUrl);
+            const mediaValue = ytId ? ytId : liveUrl;
+
+            savePost("🔴 بث مباشر شغال الآن! تابع الشرح بالتزامن مع الأستاذ:", mediaValue, "live", true);
             document.getElementById('liveUrlInput').value = "";
         }
 
@@ -470,16 +560,29 @@
                     
                     let mediaHtml = "";
                     if (post.isLive) {
-                        mediaHtml = `
-                            <div style="margin-top:10px; padding:15px; background:rgba(228, 30, 63, 0.1); border-radius:8px; border:1px solid #e41e3f; text-align:center;">
-                                <h4 style="color:#e41e3f; margin-top:0;">🔴 بث مباشر قائم الان</h4>
-                                <a href="${post.media}" target="_blank" style="display:inline-block; padding:10px 20px; background:#e41e3f; color:white; border-radius:6px; font-weight:bold; text-decoration:none;">الانضمام للبث المباشر 📡</a>
-                            </div>`;
+                        const ytId = post.media;
+                        if (ytId && ytId.length === 11 && !ytId.includes('http')) {
+                            // عرض البث المباشر مدمج كـ iframe يوتيوب
+                            mediaHtml = `
+                                <div style="margin-top:10px; padding:10px; background:rgba(228, 30, 63, 0.05); border-radius:8px; border:1px solid #e41e3f;">
+                                    <h4 style="color:#e41e3f; margin:0 0 10px 0; text-align:center;">🔴 بث مباشر شغال الان</h4>
+                                    <div class="video-container">
+                                        <iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                    </div>
+                                </div>`;
+                        } else {
+                            // لو الرابط ليس يوتيوب (مثل فيسبوك أو غيره)
+                            mediaHtml = `
+                                <div style="margin-top:10px; padding:15px; background:rgba(228, 30, 63, 0.1); border-radius:8px; border:1px solid #e41e3f; text-align:center;">
+                                    <h4 style="color:#e41e3f; margin-top:0;">🔴 بث مباشر قائم الان</h4>
+                                    <a href="${post.media}" target="_blank" style="display:inline-block; padding:10px 20px; background:#e41e3f; color:white; border-radius:6px; font-weight:bold; text-decoration:none;">الانضمام للبث المباشر 📡</a>
+                                </div>`;
+                        }
                     } else if (post.media) {
                         if (post.fileType && post.fileType.startsWith('video')) {
-                            mediaHtml = `<video controls width="100%"><source src="${post.media}" type="${post.fileType}"></video>`;
+                            mediaHtml = `<video controls width="100%" style="border-radius:6px; margin-top:10px;"><source src="${post.media}" type="${post.fileType}"></video>`;
                         } else if (post.fileType && post.fileType.startsWith('image')) {
-                            mediaHtml = `<img src="${post.media}" style="max-width:100%; border-radius:6px;">`;
+                            mediaHtml = `<img src="${post.media}" style="max-width:100%; border-radius:6px; margin-top:10px;">`;
                         }
                     }
 
@@ -488,54 +591,65 @@
                         deleteBtnHtml = `<button class="delete-btn" style="float:left;" onclick="deletePost('${postId}')">🗑️ حذف</button>`;
                     }
 
-                    let badgeClass = post.isLive ? 'badge-live' : (post.role === 'teacher' ? '' : (post.role === 'assistant' ? 'badge-assistant' : 'badge-student'));
-                    let roleText = post.isLive ? 'بث مباشر 📡' : (post.role === 'teacher' ? 'مدرس 👨‍🏫' : (post.role === 'assistant' ? 'مساعد 👨‍💼' : 'طالب 👨‍🎓'));
+                    let badgeClass = post.isLive ? 'badge-live' : (post.role === 'teacher' ? 'badge' : (post.role === 'assistant' ? 'badge badge-assistant' : 'badge badge-student'));
+                    let roleTitle = post.isLive ? '🔴 بث مباشر' : (post.role === 'teacher' ? 'مدرس 👨‍🏫' : (post.role === 'assistant' ? 'مساعد 👨‍💼' : 'طالب 👨‍🎓'));
 
                     card.innerHTML = `
                         ${deleteBtnHtml}
-                        <div><strong>${post.author}</strong> <span class="badge ${badgeClass}">${roleText}</span></div>
-                        <div class="post-body" style="margin-top:10px;">${autoLink(post.content ? post.content.replace(/\n/g, '<br>') : '')}</div>
+                        <div style="font-weight:bold; margin-bottom:8px;">
+                            <span>${post.author}</span>
+                            <span class="${badgeClass}">${roleTitle}</span>
+                        </div>
+                        <div class="post-body">${autoLink(post.content)}</div>
                         ${mediaHtml}
+                        
+                        <!-- التعليقات -->
                         <div class="comments-section">
-                            <h4>التعليقات:</h4>
                             <div id="comments-${postId}"></div>
-                            <div class="comment-input-box" style="display:flex; gap:5px; margin-top:8px;">
-                                <input type="text" id="comment-text-${postId}" placeholder="اكتب تعليقك..." style="flex:1;" />
-                                <button onclick="sendComment('${postId}')" style="width:80px;">إرسال</button>
+                            <div style="display:flex; gap:5px; margin-top:8px;">
+                                <input type="text" id="comment-input-${postId}" placeholder="اكتب تعليقاً..." style="padding:8px; font-size:13px;" />
+                                <button onclick="addComment('${postId}')" style="width:70px; padding:8px; font-size:13px;">تعليق</button>
                             </div>
                         </div>
                     `;
+
                     feed.appendChild(card);
                     loadComments(postId);
                 });
             });
         }
 
-        function sendComment(postId) {
-            const input = document.getElementById(`comment-text-${postId}`);
-            if (input.value.trim() === "") return;
+        function addComment(postId) {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const text = input.value.trim();
+            if(!text) return;
+
             db.ref(`rash_comments/${postId}`).push({
-                author: currentUser.name, text: input.value.trim()
+                author: currentUser.name,
+                role: currentUser.role,
+                text: text,
+                timestamp: Date.now()
             }).then(() => { input.value = ""; });
         }
 
         function loadComments(postId) {
             db.ref(`rash_comments/${postId}`).on('value', (snapshot) => {
-                const container = document.getElementById(`comments-${postId}`);
-                container.innerHTML = "";
+                const box = document.getElementById(`comments-${postId}`);
+                if (!box) return;
+                box.innerHTML = "";
                 const data = snapshot.val();
-                if (data) {
-                    Object.values(data).forEach(comm => {
-                        const div = document.createElement('div');
-                        div.className = 'comment-item';
-                        div.innerHTML = `<strong>${comm.author}:</strong> ${autoLink(comm.text)}`;
-                        container.appendChild(div);
-                    });
-                }
+                if (!data) return;
+
+                Object.values(data).forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'comment-item';
+                    div.innerHTML = `<strong>${c.author}:</strong> ${c.text}`;
+                    box.appendChild(div);
+                });
             });
         }
 
-        // --- الكويزات وحذفها ---
+        // --- الامتحانات والاختبارات ---
         function addQuizQuestion() {
             const q = document.getElementById('quizQuestion').value.trim();
             const a = document.getElementById('optA').value.trim();
@@ -544,108 +658,78 @@
             const d = document.getElementById('optD').value.trim();
             const correct = document.getElementById('correctOpt').value;
 
-            if(!q || !a || !b || !c || !d) { alert("أكمل أرقام الخيارات واكتب نص السؤال كاملًا!"); return; }
+            if(!q || !a || !b || !c || !d) { alert("يرجى ملء جميع الخانات!"); return; }
 
-            db.ref('rash_quizzes').push({ question: q, optA: a, optB: b, optC: c, optD: d, correct }).then(() => {
-                alert("تم نشر الكويز بنجاح!");
+            db.ref('rash_quizzes').push({
+                question: q,
+                optA: a, optB: b, optC: c, optD: d,
+                correct: correct,
+                author: currentUser.name
+            }).then(() => {
                 document.getElementById('quizQuestion').value = "";
                 document.getElementById('optA').value = "";
                 document.getElementById('optB').value = "";
                 document.getElementById('optC').value = "";
                 document.getElementById('optD').value = "";
+                alert("تم إضافة السؤال بنجاح!");
             });
-        }
-
-        function deleteQuiz(quizId) {
-            if(confirm("هل أنت متأكد من حذف هذا الامتحان؟")) {
-                db.ref(`rash_quizzes/${quizId}`).remove().then(() => {
-                    alert("تم حذف الامتحان بنجاح!");
-                });
-            }
         }
 
         function loadQuizzes() {
             db.ref('rash_quizzes').on('value', (snapshot) => {
-                const container = document.getElementById('quizList');
-                container.innerHTML = "";
+                const quizList = document.getElementById('quizList');
+                quizList.innerHTML = "";
                 const data = snapshot.val();
-                if(!data) { container.innerHTML = "<p>لا توجد امتحانات متاحة.</p>"; return; }
+                if(!data) { quizList.innerHTML = '<p style="text-align: center;">لا توجد امتحانات متاحة حالياً.</p>'; return; }
 
-                Object.entries(data).reverse().forEach(([qId, q]) => {
+                Object.entries(data).forEach(([qId, q], idx) => {
                     const card = document.createElement('div');
                     card.className = 'post-card';
-
-                    let deleteQuizBtn = "";
-                    if(currentUser.role === 'teacher' || currentUser.role === 'assistant') {
-                        deleteQuizBtn = `<button class="delete-btn" style="float:left;" onclick="deleteQuiz('${qId}')">🗑️ حذف الامتحان</button>`;
-                    }
-
                     card.innerHTML = `
-                        ${deleteQuizBtn}
-                        <h4>سؤال: ${q.question}</h4>
-                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'A', '${q.correct}')">أ) ${q.optA}</div>
-                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'B', '${q.correct}')">ب) ${q.optB}</div>
-                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'C', '${q.correct}')">ج) ${q.optC}</div>
-                        <div class="quiz-option" onclick="answerQuiz('${qId}', 'D', '${q.correct}')">د) ${q.optD}</div>
+                        <h4>سُؤال ${idx + 1}: ${q.question}</h4>
+                        <div class="quiz-option" onclick="submitAnswer('${qId}', 'A', '${q.correct}')">أ) ${q.optA}</div>
+                        <div class="quiz-option" onclick="submitAnswer('${qId}', 'B', '${q.correct}')">ب) ${q.optB}</div>
+                        <div class="quiz-option" onclick="submitAnswer('${qId}', 'C', '${q.correct}')">ج) ${q.optC}</div>
+                        <div class="quiz-option" onclick="submitAnswer('${qId}', 'D', '${q.correct}')">د) ${q.optD}</div>
                     `;
-                    container.appendChild(card);
+                    quizList.appendChild(card);
                 });
             });
         }
 
-        function answerQuiz(qId, selected, correct) {
-            if(currentUser.role !== 'student') { alert("الامتحانات للطلاب فقط!"); return; }
-
-            const safeName = currentUser.name.replace(/[.#$\[\]]/g, "_");
-            const answerRef = db.ref(`rash_answers/${qId}_${safeName}`);
-
-            answerRef.get().then((snapshot) => {
-                if (snapshot.exists()) {
-                    alert("⚠️ لقد قمت بإجابة هذا السؤال من قبل! لا يمكنك إعادة الإجابة.");
-                    return;
-                }
-
-                answerRef.set({ student: currentUser.name, selected, timestamp: Date.now() }).then(() => {
-                    if(selected === correct) {
-                        alert("إجابة صحيحة! أحسنت 👏 (+10 نقاط)");
-                        db.ref(`rash_users/${currentUser.name}`).transaction(p => (p || 0) + 10);
-                    } else {
-                        alert("إجابة خاطئة ❌ لقد تم تسجيل إجابتك ولا يمكنك إعادتها.");
-                    }
-                });
-            });
-        }
-
-        // --- الأوائل وحذف طالب ---
-        function deleteStudentFromLeaderboard(studentName) {
-            if(confirm(`هل أنت متأكد من مسح الطالب "${studentName}" من قائمة المتفوقين؟`)) {
-                db.ref(`rash_users/${studentName}`).remove().then(() => {
-                    alert("تم إزالة الطالب بنجاح!");
-                });
+        function submitAnswer(quizId, selectedOpt, correctOpt) {
+            if(selectedOpt === correctOpt) {
+                alert("إجابة صحيحة! أحسنت 👏🎉");
+                updateScore(10);
+            } else {
+                alert("إجابة خاطئة، حاول مرة أخرى! ❌");
             }
         }
 
+        function updateScore(points) {
+            if(!currentUser.name) return;
+            const userRef = db.ref(`rash_scores/${currentUser.name}`);
+            userRef.transaction(currentScore => {
+                return (currentScore || 0) + points;
+            });
+        }
+
         function loadLeaderboard() {
-            db.ref('rash_users').orderByValue().on('value', (snapshot) => {
-                const container = document.getElementById('leaderboardList');
-                container.innerHTML = "";
+            db.ref('rash_scores').orderByValue().on('value', (snapshot) => {
+                const list = document.getElementById('leaderboardList');
+                list.innerHTML = "";
                 const data = snapshot.val();
-                if(!data) { container.innerHTML = "<p>لا يوجد متفوقين بعد.</p>"; return; }
+                if(!data) { list.innerHTML = '<p style="text-align: center;">لا يوجد نقاط مسجلة بعد.</p>'; return; }
 
-                Object.entries(data).sort((a,b) => b[1]-a[1]).forEach(([name, pts], i) => {
-                    let removeBtn = "";
-                    if(currentUser.role === 'teacher' || currentUser.role === 'assistant') {
-                        removeBtn = `<button class="delete-btn" onclick="deleteStudentFromLeaderboard('${name}')">❌ مسح</button>`;
-                    }
-
-                    container.innerHTML += `
-                        <div class="leaderboard-item">
-                            <span>#${i+1} ${name}</span>
-                            <div>
-                                <span style="margin-left: 10px;">💎 ${pts} نقطة</span>
-                                ${removeBtn}
-                            </div>
-                        </div>`;
+                const sorted = Object.entries(data).sort((a,b) => b[1] - a[1]);
+                sorted.forEach(([name, score], idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+                    item.innerHTML = `
+                        <span>#${idx + 1} ${name}</span>
+                        <span style="color: var(--primary);">${score} نقطة</span>
+                    `;
+                    list.appendChild(item);
                 });
             });
         }
